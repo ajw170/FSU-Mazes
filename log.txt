@@ -1,0 +1,156 @@
+Andrew Wood
+COP4531 - Mazes on the Web
+Development and Test Log for Project 3 - Mazes on the Web
+
+URL FOR MAZE DEMO:
+*************************************************
+http://ww2.cs.fsu.edu/~awood/maze_demo/index.php
+*************************************************
+
+June 12: 9AM-11AM - General
+
+The first phase of the project was simply getting oriented with the pre-existing code base and running the given examples
+to determine how everything works and what output is expected.  In addition, I set up a local environment on my computer with
+CLion in order to faciliate debugging.  I imported the class libraries to my local environment for ease of use.
+
+I also set up the web environment with appropriate permissions to ensure I knew that it worked (this was mostly to avoid trouble
+later on).
+
+
+June 12: 6PM-8PM - Existing Test Harness Familiarization
+
+I took this time to familiarize myself with how ranmaze and solvemaze worked.  I also used mazemaster to analyze the generated mazes in
+more detail.  Once I felt comfortable with what I was assigned to reproduce, I embarked on the actual coding.
+
+
+June 13: 3-6PM - Coding of RanMaze2t.cpp
+
+This was the beginning of the coding portion of the project.  I started by placing the shell code provided in the assignment document as the main()
+function of RanMaze2t.cpp along with the code for the Connect function. This is where analyzing which FSU library containers and features would be the
+most useful came into play.
+
+I first established the procuedure for creating various fileNames.  The process was fairly straightforward after analyzing how std::stringstream worked (as
+mentioned in the assignment document). This was for me a preferable and more elegant solution than by using the supplied looping code.  However, upon further
+review, I decided to just use char arrays and the formula provided by Dr. Lacher to generate the components digits.  This turned out
+to be less of a headache since stringstream seems to requre the use of std::string (which we were advised not to do).
+
+Next, I began the coding of the meat of the ranmaze generator code.
+
+THe shell code provided for ranmaze was actually quite useful in organizing the structure of the main function.  I basically went
+off of that template and created two blank functions, as advised, to start: Connect and WriteMaze.  Before the actual implementation
+of Connect and Write maze I completed the main code (where the calls to Connect and WriteMaze would have no effect), and ensured
+everything ran smoothly from a high level standpoint.  This saved time later as I only had to debug the Connect and WriteMaze functions
+once I was sure the main was proper.
+
+Essentially the maze vector and partition are initialized, then the p.Components() function is called which is already
+implemented.  Then, the Connect function is called, using start and goal cells (easily calculated prior) as
+the targets.  Then, the boilerplate code provided is included, and the only addiitonal work was ensuring
+the filename was created properly (as mentioned previously) for the first output file.  The second output
+file was easier as you'd always append a '1' to the name so no calculations required.
+
+For this section I did not have significant issues other than random annoyances common when working with
+C strings and counters, but the debugger in CLion was immensely helpful in resolving that.  In particular
+was the peculiarity that the digits calculation worked backwards, so you'd need to essentially reserve
+space in the name array and then decrement based on the number of digits.  Once I was satisfied with this part it was time
+to call it a night.
+
+
+June 14: 6PM-12AM
+
+This was the meat of the project in implementing Connect function.  The code speaks for itself, but I decided to take the following
+strategy:
+
+    Pre-work:
+    -Select a random cell using fsu random number generator
+    -calculate cell numbers of the corners (see formulas in code) ... this took a little bit of thinking to figure out
+    -determine if the cell is a wall (N,S,E,W) (see formulas in code), if so, remember that.
+
+    Step 1: Determine if teh cell is a corner cell, if so continue:
+
+    If it is, select a random wall using a random number generator for 0,1,2,3.
+
+    Test each corner case (northwest, northeast, southwest, southeast) and depending on which walls are eligible,
+    either knock the wall down if the number corresponds to an eligible wall, or do nothing if the cell corresponds to
+    an ineligible wall.  Note that at first I had issues with teh logic here; I initially did not account for teh "do nothing"
+    cases, which cased my maze generation to be off.  When I fixed it the mazes were more correctly 'random'.
+
+    Step 2:  If the cell was not a corner, check to see if it is a wall (remembered from pre-work)
+
+    If it is, do the same thign as described in step 1, except in this case 3 out of the 4 faces will be eligible for
+    deletion.
+
+    Step 3: If the cell was neither a corner nor a wall, then do the same thing, except all 4 faces will be eligible.
+
+    Then, after knocking a random wall down (or not), ensure that both the partition object and the maze vector are properly
+    updated.  I found this to be straightforward except for random cases when I coded the wall change incorrectly...it took
+    a bit of debugging to figure this out.
+
+    Finally, check to see if the start and goal cells are connected using p.Find.  If they are, stop, if not, repeat the loop
+    starting with the pre-work.
+
+The debugging portion was rough.  I spent a lot of time trying to figure out why the generated mazes from this part did not
+seem very random.  I Realized it was because I needed to add in additional condition checks for each wall removal.
+Basically, if an eligible wall is chosen for removal, I added a condition to first check if the two cells that would be connected
+as a result of the wall knock down were ALREADY in teh same parittion.  If they were, I simply ignored and DID NOT knock
+the wall down.  This resulted in circuitous paths and my mazes much more closely resembled Dr. Lacher's after this fix
+was applied.  This was by far the hardest part of the RanMaze implementation.
+
+Note that RanMaze2w was essentially a copy paste of the code from 2t, except that it did not stop to write the output
+file after only 1 pass, it instead kept going until the components count was 1.
+
+
+
+June 18: 6PM-9PM:
+
+This was where I did the write Maze function.  It was very straightforward and was based on the output of the ranmaze2t_i.x
+and .w, respectively.  It was basically just iterating through the maze vector and writing the values, ensuring the
+tabs and newlines were inserted in appropriate places.
+
+THen, it was time to aggressively test the mazes with mazemaster.  I already mentioned issues encountered in previous sections.
+The debugging with CLion as well as the mazemaster evaluation was very helpful with tracking down bugs.  Note that since
+I had the line by line debugger I decided not to implement trace.
+
+I ran multiple tests to compare my outputs with those of Dr. Lacher's executables.
+
+
+June 19: 6PM-9PM:
+
+Now was the solvemaze part.  At first I thought this would be difficult but upon analyzing the maze_util.h and graph_util.h
+I realized what we needed was already provided.  It was just a matter of using the functions correctly and then writing
+a simple output sequence to output the results.
+
+By far the man ISSUE I had here was the uint8_t giving strange results.  My outputs were bizzarrely wrong.  Then, I changed
+to size_t as the template argument and eveyrhtign was correct.  THis is because uint8_t is not properly interpreted for
+character output.  This explained a lot.  It took a while to figure this out and was quite frustrating for such a small
+issue.
+
+I used both my randomly generated maze files and Dr. lacher's and ran them through my solvemaze program and then compared
+the outputs to Dr. Lacher's executables.  Besides the issue I mentioned above, this was fairly straightforward and I did
+not have many issues.  I'm sure it would have been WAYY worse if the DFS solver and MazeReader was not already implemented
+for us!!
+
+
+June 20: 6PM-9PM: Finishing touches and getting the website up
+
+As mentioned, I had already set up the webspace at the beginning, but now it was time to transfer over my executables.
+This was a matter of following instructions.  Once I got the web page up, everything looked good at first.  But then,
+I realized that when I refreshed the page or submitted a query for another maze, the "result" maze would go crazy.  This
+was disconcerting.  It took me a while to figure out that my solvemaze was actually appending results to the original
+output file rather than overwriting.  So in this sense the use of the webpage let me identify another bug with the solvemaze.cpp
+implementation, so I am grateful for that.  When I fixed the code, re-compiled, and re-uploaded the executable to the site
+everything worked as expected.
+
+I enjoyed this project and liked the application of mazes as it relates to what we're studying.
+
+
+Bonus side note: Explaining why Path_DFS(v,w) is more efficient than callign DFSurvey(v)
+
+This was an interesting question.  I looked over the code of both functions in the library.  The answer is quite simple.
+THe DFSurvey(v) function performs a depth-first search of ALL vertices connected to v.  That is, regardless of whether
+the target vertex is found, the algorithm will continue until ALL vertices connected to v are found.  Path_DFS(v,w) makes
+use of the DFSurvey::Search(v,w) which performs the same type of search from v BUT STOPS immediately when w is found (e.g.
+when it changes from white to gray).  Hence, no time is wasted continuing the survey when the target is found.
+
+
+
+
